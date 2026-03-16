@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard PSE — FATTON & CO</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0d0f14;--sur:#13161e;--sur2:#1a1e28;--bdr:#252935;--acc:#e8c96d;--ac2:#6d9de8;--dan:#e87070;--suc:#6de8a0;--txt:#e8eaf0;--mut:#6b7280;--fn:'Segoe UI',Arial,sans-serif;--mo:'Cascadia Code','Consolas',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:var(--fn);min-height:100vh}
+#ld{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:16px;transition:opacity .5s}
+#ld.hide{opacity:0;pointer-events:none}
+.sp{width:38px;height:38px;border:3px solid var(--bdr);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ld-t{font-size:20px;font-weight:700;color:var(--acc)}
+.ld-s{font-size:11px;color:var(--mut);font-family:var(--mo)}
+.ld-p{width:280px;height:3px;background:var(--bdr);border-radius:2px;overflow:hidden}
+.ld-pb{height:100%;background:var(--acc);border-radius:2px;width:0%;transition:width .4s}
+#er{display:none;position:fixed;inset:0;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;gap:13px;padding:36px;text-align:center;z-index:190}
+#er.show{display:flex}
+.er-t{font-size:17px;color:var(--dan);font-weight:600}
+.er-m{font-size:12px;color:var(--mut);max-width:500px;line-height:1.7}
+.er-c{font-family:var(--mo);font-size:10px;padding:8px 12px;background:var(--sur);border:1px solid var(--bdr);border-radius:7px;color:var(--mut);max-width:560px;word-break:break-all;text-align:left}
+.btn{background:var(--acc);color:#000;border:none;padding:9px 22px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer}
+header{padding:17px 30px 13px;border-bottom:1px solid var(--bdr);background:linear-gradient(135deg,#13161e,#0f1420);display:flex;align-items:flex-end;justify-content:space-between}
+.h-t{font-size:20px;font-weight:700;color:var(--acc)}
+.h-s{font-size:10px;color:var(--mut);margin-top:2px;text-transform:uppercase;letter-spacing:.4px}
+.h-r{display:flex;gap:7px;align-items:center}
+.bdg{padding:3px 10px;border-radius:18px;font-size:10px;font-weight:600;letter-spacing:.7px;text-transform:uppercase}
+.bdg-r{background:rgba(232,112,112,.12);border:1px solid rgba(232,112,112,.3);color:var(--dan)}
+.bdg-b{background:rgba(109,157,232,.12);border:1px solid rgba(109,157,232,.3);color:var(--ac2);font-family:var(--mo);font-size:10px}
+.tabs{display:flex;padding:0 30px;background:var(--sur);border-bottom:1px solid var(--bdr);overflow-x:auto}
+.tab{padding:11px 16px;font-size:13px;font-weight:500;color:var(--mut);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;user-select:none}
+.tab:hover{color:var(--txt)}
+.tab.active{color:var(--acc);border-bottom-color:var(--acc)}
+.content{padding:20px 30px}
+.page{display:none}
+.page.active{display:block}
+.rbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:8px 13px;background:var(--sur);border:1px solid var(--bdr);border-radius:9px}
+.ri{font-size:11px;color:var(--mut)}
+.rbtn{background:rgba(232,201,109,.1);border:1px solid rgba(232,201,109,.3);color:var(--acc);padding:5px 13px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s}
+.rbtn:hover{background:rgba(232,201,109,.2)}
+.rbtn.off{opacity:.5;pointer-events:none}
+.kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:var(--sur);border:1px solid var(--bdr);border-radius:10px;padding:15px 17px;position:relative;overflow:hidden;transition:transform .2s}
+.kpi:hover{transform:translateY(-2px)}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kc,var(--acc))}
+.kl{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.7px;font-weight:500;margin-bottom:6px}
+.kv{font-family:var(--mo);font-size:22px;font-weight:600;color:var(--kc,var(--acc));line-height:1}
+.ks{font-size:10px;color:var(--mut);margin-top:4px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px}
+.pnl{background:var(--sur);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.ph{padding:12px 15px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between}
+.pt{font-size:12px;font-weight:600;color:var(--txt)}
+.pb{padding:15px}
+.cw{position:relative;height:190px}
+.bc{display:flex;flex-direction:column;gap:9px}
+.br{display:flex;align-items:center;gap:8px}
+.bl{font-size:10px;color:var(--mut);width:78px;text-align:right;flex-shrink:0}
+.bt{flex:1;height:6px;background:var(--sur2);border-radius:3px;overflow:hidden}
+.bf{height:100%;border-radius:3px;transition:width 1s}
+.bn{font-size:10px;font-family:var(--mo);width:90px}
+.tw{overflow-x:auto;max-height:360px;overflow-y:auto}
+.tw::-webkit-scrollbar{width:3px;height:3px}
+.tw::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:2px}
+table{width:100%;border-collapse:collapse}
+th{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);font-weight:600;padding:7px 10px;text-align:left;border-bottom:1px solid var(--bdr);background:var(--sur2);position:sticky;top:0}
+td{font-size:11px;padding:8px 10px;border-bottom:1px solid rgba(37,41,53,.4);color:var(--txt)}
+tr:hover td{background:rgba(255,255,255,.02)}
+.mn{font-family:var(--mo);font-size:10px}
+.tg{display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600}
+.tr{background:rgba(232,112,112,.15);color:var(--dan)}
+.tg2{background:rgba(109,232,160,.15);color:var(--suc)}
+.tb{background:rgba(109,157,232,.15);color:var(--ac2)}
+.ty{background:rgba(232,201,109,.15);color:var(--acc)}
+.sr{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(37,41,53,.4)}
+.sr:last-child{border-bottom:none}
+.srl{font-size:11px;color:var(--mut)}
+.srv{font-size:11px;font-family:var(--mo);color:var(--txt)}
+.alt{background:rgba(232,112,112,.07);border:1px solid rgba(232,112,112,.2);border-radius:8px;padding:10px 13px;margin-bottom:14px;font-size:12px;color:#f0a0a0;display:flex;align-items:center;gap:8px}
+.fb{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.fbt{background:var(--sur);border:1px solid var(--bdr);color:var(--mut);padding:4px 11px;border-radius:5px;font-size:11px;cursor:pointer;font-family:var(--fn);transition:all .2s}
+.fbt:hover,.fbt.on{background:rgba(232,201,109,.1);border-color:rgba(232,201,109,.4);color:var(--acc)}
+@media(max-width:780px){.content,.tabs,header{padding-left:12px;padding-right:12px}.g2,.g3,.g21{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="ld">
+  <div class="sp"></div>
+  <div class="ld-t">Dashboard PSE — FATTON & CO</div>
+  <div class="ld-s" id="ldst">Chargement depuis GitHub…</div>
+  <div class="ld-p"><div class="ld-pb" id="ldpb"></div></div>
+</div>
+
+<div id="er">
+  <div style="font-size:36px">⚠️</div>
+  <div class="er-t">Impossible de charger le fichier Excel</div>
+  <div class="er-m" id="er-m">Le fichier Excel n'a pas pu être lu depuis GitHub.</div>
+  <div class="er-c" id="er-c"></div>
+  <div style="font-size:12px;color:var(--mut);max-width:460px;line-height:1.7;background:var(--sur);border:1px solid var(--bdr);border-radius:8px;padding:12px 14px;text-align:left">
+    <strong style="color:var(--txt)">Pour corriger :</strong><br>
+    1. Vérifie que le fichier <code style="background:var(--sur2);padding:1px 4px;border-radius:3px">PSE.Calcul.complet.FATTON.xlsx</code> est bien dans ton dépôt GitHub<br>
+    2. Le dépôt doit être <strong style="color:var(--txt)">Public</strong><br>
+    3. GitHub Pages doit être activé sur la branche <code style="background:var(--sur2);padding:1px 4px;border-radius:3px">main</code>
+  </div>
+  <button class="btn" onclick="init()">⟳ Réessayer</button>
+</div>
+
+<div id="app" style="display:none">
+  <header>
+    <div>
+      <div class="h-t">Dashboard PSE — FATTON & CO</div>
+      <div class="h-s">Plan de Sauvegarde de l'Emploi · IDCC 0016 · Mise à jour automatique</div>
+    </div>
+    <div class="h-r">
+      <span class="bdg bdg-r">⚠ PSE Actif</span>
+      <span class="bdg bdg-b" id="upd">—</span>
+    </div>
+  </header>
+  <nav class="tabs">
+    <div class="tab active" onclick="st('ov',this)">Vue Générale</div>
+    <div class="tab" onclick="st('ef',this)">Effectifs & Sites</div>
+    <div class="tab" onclick="st('fi',this)">Analyse Financière</div>
+    <div class="tab" onclick="st('in',this)">Indemnités</div>
+    <div class="tab" onclick="st('pe',this)">Liste Personnel</div>
+  </nav>
+  <div class="content">
+    <div class="rbar">
+      <div class="ri">📂 Source : GitHub · <span id="src-file">PSE.Calcul.complet.FATTON.xlsx</span> · Données mises à jour à chaque modification du fichier</div>
+      <button class="rbtn" id="rbtn" onclick="init()">⟳ Actualiser</button>
+    </div>
+    <div id="pg-ov" class="page active"></div>
+    <div id="pg-ef" class="page"></div>
+    <div id="pg-fi" class="page"></div>
+    <div id="pg-in" class="page"></div>
+    <div id="pg-pe" class="page"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// SOURCE : fichier Excel dans le dépôt GitHub
+// Pour mettre à jour : remplace le fichier Excel dans GitHub,
+// puis rafraîchis la page — le dashboard se recharge automatiquement
+// ═══════════════════════════════════════════════════════════
+const EXCEL_URL = "https://raw.githubusercontent.com/didiercaronaiq-ops/pse-dashboard/main/PSE.Calcul.complet.FATTON.xlsx";
+
+let D={p:[],i:[],s:[],d:{}}, CH={}, CF='ALL';
+
+async function init(){
+  const btn=document.getElementById('rbtn');
+  if(btn)btn.classList.add('off');
+  prog(5,'Connexion à GitHub…');
+  document.getElementById('ld').classList.remove('hide');
+  document.getElementById('er').classList.remove('show');
+
+  try{
+    prog(20,'Téléchargement du fichier Excel…');
+    // Ajoute un timestamp pour forcer le rechargement (bypass cache)
+    const url = EXCEL_URL + '?t=' + Date.now();
+    const res = await fetch(url);
+    if(!res.ok) throw new Error(`HTTP ${res.status} — fichier introuvable sur GitHub`);
+
+    prog(55,'Lecture des données…');
+    const buf = await res.arrayBuffer();
+
+    prog(75,'Analyse des onglets…');
+    const wb = XLSX.read(buf, {type:'arraybuffer', cellDates:true});
+    parse(wb);
+
+    prog(90,'Rendu du dashboard…');
+    render();
+
+    document.getElementById('upd').textContent = '🕐 ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    prog(100,'');
+    setTimeout(()=>{
+      document.getElementById('ld').classList.add('hide');
+      document.getElementById('app').style.display='block';
+    },250);
+
+  }catch(e){
+    console.error(e);
+    document.getElementById('ld').classList.add('hide');
+    document.getElementById('app').style.display='none';
+    document.getElementById('er').classList.add('show');
+    document.getElementById('er-m').textContent = 'Erreur : ' + e.message;
+    document.getElementById('er-c').textContent = 'URL : ' + EXCEL_URL;
+  }finally{
+    if(btn)btn.classList.remove('off');
+  }
+}
+
+function prog(pct,msg){
+  document.getElementById('ldpb').style.width=pct+'%';
+  if(msg)document.getElementById('ldst').textContent=msg;
+}
+
+// ── PARSE ─────────────────────────────────────────────────
+function parse(wb){
+  D.p = ps(wb,'👥 Personnel',2).filter(r=>r['ID']&&r['ID']!=='ID');
+  D.i = ps(wb,'💰 Calcul Indemnites',2).filter(r=>r['ID']&&r['ID']!=='ID'&&+r['COÛT TOTAL']>0);
+  D.s = ps(wb,'📋 Synthèse PSE',3).filter(r=>r['Site']&&r['Site']!=='TOTAL'&&['PUSIGNAN','ROGNAC','VALENCE'].includes(String(r['Site']).trim()));
+  const ds=wb.Sheets['📈 Dashboard'];
+  if(ds){
+    const rows=XLSX.utils.sheet_to_json(ds,{header:1,defval:''});
+    const r=rows[3]||[];
+    D.d={ea:+r[0]||34,sup:+r[1]||21,tr:+r[3]||.618,ca:+r[5]||1575572.96,cb:+r[6]||578474.31,eco:+r[7]||997098.65,il:+r[9]||184045.56,pr:+r[10]||166183.11,cp:+r[11]||93803.18,tot:+r[12]||444031.84,roi:+r[13]||.445,hs:+r[18]||19,fs:+r[19]||2};
+  }else{
+    D.d={ea:34,sup:21,tr:.618,ca:1575572.96,cb:578474.31,eco:997098.65,il:184045.56,pr:166183.11,cp:93803.18,tot:444031.84,roi:.445,hs:19,fs:2};
+  }
+}
+
+function ps(wb,n,sk){
+  const ws=wb.Sheets[n];if(!ws)return[];
+  const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  if(raw.length<=sk)return[];
+  const h=raw[sk].map(x=>String(x||'').trim());
+  return raw.slice(sk+1).map(row=>{const o={};h.forEach((k,i)=>o[k]=row[i]??'');return o;});
+}
+
+// ── FORMAT ────────────────────────────────────────────────
+const f=(n,d=0)=>(!n&&n!==0)||isNaN(+n)?'—':Number(n).toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fe=n=>f(n)+' €';
+const fp=n=>(+n*100).toFixed(1)+'%';
+const avg=(a,k)=>{const v=a.map(r=>+r[k]).filter(x=>!isNaN(x)&&x>0);return v.length?v.reduce((s,x)=>s+x,0)/v.length:0;};
+
+function render(){rOv();rEf();rFi();rIn();rPe();}
+const kH=arr=>arr.map(k=>`<div class="kpi" style="--kc:${k.c}"><div class="kl">${k.l}</div><div class="kv" style="font-size:${k.fs||'22px'}">${k.v}</div><div class="ks">${k.s}</div></div>`).join('');
+const bH=(arr,mx)=>arr.map(b=>`<div class="br"><div class="bl">${b.l}</div><div class="bt"><div class="bf" style="width:${mx>0?(+b.v/mx*100).toFixed(1):0}%;background:${b.c}"></div></div><div class="bn" style="color:${b.c}">${b.n||fe(b.v)}</div></div>`).join('');
+const sH=arr=>arr.map(s=>`<div class="sr"><span class="srl">${s.l}</span><span class="srv" style="color:${s.c||'var(--txt)'}">${s.v}</span></div>`).join('');
+
+// ── VUE GÉNÉRALE ──────────────────────────────────────────
+function rOv(){
+  const d=D.d,p=D.p;
+  const sc=p.filter(r=>String(r['Fonction à supprimer']).trim()==='Oui').length||d.sup;
+  const tc=p.length||d.ea;
+  const tr=tc>0?sc/tc:d.tr;
+  const s50=p.filter(r=>String(r['Fonction à supprimer']).trim()==='Oui'&&+r['Age']>=50).length;
+  document.getElementById('pg-ov').innerHTML=`
+<div class="alt">⚠️ <strong>Alerte critique :</strong> Taux de suppression de ${fp(tr)} — seuil très fort (Art. L1233-31 C. trav.)</div>
+<div class="kg">${kH([
+  {l:'Effectif Avant',v:f(tc),s:'3 sites · CDI',c:'var(--txt)'},
+  {l:'Postes Supprimés',v:f(sc),s:`dont ${d.hs} H · ${d.fs} F`,c:'var(--dan)'},
+  {l:'Effectif Restant',v:f(tc-sc),s:'Site PUSIGNAN',c:'var(--suc)'},
+  {l:'Taux Réduction',v:fp(tr),s:'⚠️ Très fort',c:'var(--dan)'},
+  {l:'Coût Total PSE',v:fe(d.tot),s:'Ind.+Préavis+CP',c:'var(--acc)'},
+  {l:'Économie Annuelle',v:fe(d.eco),s:'Masse sal. économisée',c:'var(--suc)'},
+  {l:'ROI du PSE',v:(d.roi*12).toFixed(1)+' mois',s:'Retour invest.',c:'var(--suc)'},
+  {l:'Salaire Moyen',v:fe(avg(p,'Salaire Brut Mensuel (Base brut CP)')),s:'Brut mensuel',c:'var(--acc)'},
+])}</div>
+<div class="g21">
+  <div class="pnl"><div class="ph"><span class="pt">Décomposition Coût PSE</span><span class="tg ty">${fe(d.tot)}</span></div>
+    <div class="pb">
+      <div class="bc">${bH([{l:'Ind. légales',v:d.il,c:'var(--dan)'},{l:'Préavis',v:d.pr,c:'var(--ac2)'},{l:'Congés payés',v:d.cp,c:'var(--acc)'}],d.tot)}</div>
+      <div style="margin-top:12px;border-top:1px solid var(--bdr);padding-top:11px">${sH([{l:'Coût employeur Avant',v:fe(d.ca)},{l:'Coût employeur Après',v:fe(d.cb)},{l:'Économie annuelle nette',v:fe(d.eco),c:'var(--suc)'}])}</div>
+    </div>
+  </div>
+  <div class="pnl"><div class="ph"><span class="pt">ROI du PSE</span></div>
+    <div class="pb">
+      <div style="text-align:center;margin-bottom:12px">
+        <div style="font-family:var(--mo);font-size:32px;font-weight:600;color:var(--suc)">${(d.roi*12).toFixed(1)} mois</div>
+        <div style="font-size:11px;color:var(--mut);margin-top:3px">pour amortir le coût total</div>
+      </div>
+      ${sH([{l:'Coût PSE total',v:fe(d.tot)},{l:'Économie/mois',v:fe(d.eco/12)},{l:'ROI en années',v:d.roi.toFixed(2)+' an'}])}
+    </div>
+  </div>
+</div>
+<div class="pnl"><div class="ph"><span class="pt">Indicateurs Sociaux — Art. L1233-31 C. trav.</span></div>
+  <div class="pb"><table><thead><tr><th>Indicateur</th><th>Valeur</th><th>Seuil</th><th>Alerte</th></tr></thead><tbody>
+    ${[
+      {i:'Taux de suppression global',v:fp(tr),s:'< 30% faible impact',a:'Très fort',c:'tr'},
+      {i:'Salariés ≥ 50 ans supprimés',v:f(s50),s:`${sc} supprimés au total`,a:'Proportionnel',c:'tg2'},
+      {i:'% des ≥ 50 ans supprimés',v:sc>0?fp(s50/sc):'—',s:'Part des seniors',a:'OK',c:'tg2'},
+      {i:'CDI supprimés',v:f(d.sup),s:'Totalité des CDI',a:'Fort',c:'tr'},
+      {i:'Hommes supprimés',v:f(d.hs)+' / 28',s:'Égalité H/F',a:'Surveiller',c:'ty'},
+      {i:'Femmes supprimées',v:f(d.fs)+' / 6',s:'Égalité H/F',a:'OK',c:'tg2'},
+    ].map(r=>`<tr><td>${r.i}</td><td class="mn">${r.v}</td><td style="color:var(--mut);font-size:10px">${r.s}</td><td><span class="tg ${r.c}">${r.a}</span></td></tr>`).join('')}
+  </tbody></table></div>
+</div>`;
+}
+
+// ── EFFECTIFS ─────────────────────────────────────────────
+function rEf(){
+  const p=D.p,s=D.s;
+  const sites=['PUSIGNAN','ROGNAC','VALENCE'];
+  const sd=sites.map(x=>({x,t:p.filter(r=>r['Site']===x).length,s:p.filter(r=>r['Site']===x&&String(r['Fonction à supprimer']).trim()==='Oui').length}));
+  const cats=[...new Set(p.map(r=>r['Catégorie']).filter(Boolean))];
+  const cc=['var(--acc)','var(--ac2)','var(--mut)','var(--suc)'];
+  const cd=cats.map(c=>({c,t:p.filter(r=>r['Catégorie']===c).length,s:p.filter(r=>r['Catégorie']===c&&String(r['Fonction à supprimer']).trim()==='Oui').length}));
+  const h=p.filter(r=>r['Sexe']==='H').length||28;
+  const fm=p.filter(r=>r['Sexe']==='F').length||6;
+  const sm2={};s.forEach(r=>{sm2[r['Site']]=r;});
+  const mxS=Math.max(...sd.map(d=>d.t),1),mxC=Math.max(...cd.map(d=>d.t),1);
+  document.getElementById('pg-ef').innerHTML=`
+<div class="g3">
+  <div class="pnl"><div class="ph"><span class="pt">Par Site</span></div><div class="pb">
+    <div class="bc">${sd.map(d=>`<div class="br"><div class="bl">${d.x}</div><div class="bt"><div class="bf" style="width:${d.t/mxS*100}%;background:${d.s===d.t&&d.t>0?'var(--dan)':'var(--suc)'}"></div></div><div class="bn" style="font-size:10px;color:${d.s===d.t&&d.t>0?'var(--dan)':'var(--suc)'}">${d.s}/${d.t} supp.</div></div>`).join('')}</div>
+  </div></div>
+  <div class="pnl"><div class="ph"><span class="pt">Par Catégorie</span></div><div class="pb">
+    <div class="bc">${cd.map((d,i)=>`<div class="br"><div class="bl" style="font-size:10px">${d.c}</div><div class="bt"><div class="bf" style="width:${d.t/mxC*100}%;background:${cc[i%cc.length]}"></div></div><div class="bn" style="font-size:10px">${d.s}/${d.t}</div></div>`).join('')}</div>
+  </div></div>
+  <div class="pnl"><div class="ph"><span class="pt">Par Sexe</span></div><div class="pb" style="display:flex;flex-direction:column;align-items:center">
+    <canvas id="ch-sx" width="120" height="120"></canvas>
+    <div style="margin-top:10px;width:100%">
+      ${[{l:'Hommes',n:h,s:D.d.hs,c:'var(--ac2)'},{l:'Femmes',n:fm,s:D.d.fs,c:'var(--acc)'}].map(d=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px"><div style="width:8px;height:8px;border-radius:50%;background:${d.c};flex-shrink:0"></div><span style="font-size:11px;color:var(--mut);flex:1">${d.l}</span><span style="font-size:10px;font-family:var(--mo)">${d.n} · ${d.s} supp.</span></div>`).join('')}
+    </div>
+  </div></div>
+</div>
+<div class="pnl"><div class="ph"><span class="pt">Tableau Livre I — Art. L1233-31</span></div>
+  <div class="pb"><table><thead><tr><th>Site</th><th>Total</th><th>Supprimés</th><th>% Suppr.</th><th>Coût PSE</th><th>Sal. Moyen</th><th>Anc. Moy.</th><th>Statut</th></tr></thead><tbody>
+    ${sites.map(x=>{
+      const d=sm2[x]||{};const sup=+d['Postes Supprimés']||0;const tot=+d['Effectif Total']||0;const pct=tot>0?sup/tot:0;const c=+d['Coût Total (€)']||0;const sm3=+d['Salaire Moyen Supp.']||0;const an=+d['Ancienneté Moy. Supp.']||0;
+      return`<tr><td><strong>${x}</strong></td><td class="mn">${tot}</td><td class="mn" style="color:${sup>0?'var(--dan)':'var(--suc)'}">${sup}</td><td class="mn" style="color:${pct>.5?'var(--dan)':'var(--suc)'}">${fp(pct)}</td><td class="mn">${c>0?fe(c):'—'}</td><td class="mn">${sm3>0?fe(sm3):'—'}</td><td class="mn">${an>0?an.toFixed(1)+' ans':'—'}</td><td><span class="tg ${pct>=1?'tr':pct===0?'tg2':'ty'}">${pct>=1?'Fermé':pct===0?'Maintenu':'Partiel'}</span></td></tr>`;
+    }).join('')}
+    <tr style="font-weight:600"><td><strong>TOTAL</strong></td><td class="mn">${D.d.ea}</td><td class="mn" style="color:var(--dan)">${D.d.sup}</td><td class="mn" style="color:var(--dan)">${fp(D.d.tr)}</td><td class="mn">${fe(D.d.tot)}</td><td></td><td></td><td></td></tr>
+  </tbody></table></div>
+</div>`;
+  if(CH.sx)CH.sx.destroy();
+  CH.sx=new Chart(document.getElementById('ch-sx'),{type:'doughnut',data:{labels:['Hommes','Femmes'],datasets:[{data:[h,fm],backgroundColor:['#6d9de8','#e8c96d'],borderWidth:0}]},options:{responsive:false,plugins:{legend:{display:false}}}});
+}
+
+// ── FINANCIER ─────────────────────────────────────────────
+function rFi(){
+  const d=D.d,s=D.s;
+  const mxC=Math.max(...s.map(r=>+r['Coût Total (€)']||0),1);
+  document.getElementById('pg-fi').innerHTML=`
+<div class="kg">${kH([
+  {l:'Masse Sal. Avant (an)',v:fe(d.ca),s:'34 salariés',c:'var(--dan)',fs:'15px'},
+  {l:'Masse Sal. Après (an)',v:fe(d.cb),s:'13 salariés',c:'var(--suc)',fs:'15px'},
+  {l:'Économie Annuelle',v:fe(d.eco),s:'-63,3%',c:'var(--ac2)',fs:'15px'},
+  {l:'Coût PSE One-shot',v:fe(d.tot),s:'ROI '+(d.roi*12).toFixed(1)+' mois',c:'var(--acc)',fs:'15px'},
+])}</div>
+<div class="g2">
+  <div class="pnl"><div class="ph"><span class="pt">Masse Salariale — Avant vs Après</span></div><div class="pb"><div class="cw"><canvas id="ch-ms"></canvas></div></div></div>
+  <div class="pnl"><div class="ph"><span class="pt">Répartition Coût PSE</span></div><div class="pb"><div class="cw"><canvas id="ch-pi"></canvas></div></div></div>
+</div>
+<div class="pnl"><div class="ph"><span class="pt">Coût PSE par Site</span></div><div class="pb">
+  <div class="bc">${s.map(r=>{const v=+r['Coût Total (€)']||0;return`<div class="br"><div class="bl">${r['Site']}</div><div class="bt"><div class="bf" style="width:${v/mxC*100}%;background:var(--dan)"></div></div><div class="bn">${v>0?fe(v):'—'}</div></div>`;}).join('')}</div>
+</div></div>`;
+  if(CH.ms)CH.ms.destroy();
+  CH.ms=new Chart(document.getElementById('ch-ms'),{type:'bar',data:{labels:['Avant PSE','Après PSE'],datasets:[{data:[d.ca,d.cb],backgroundColor:['rgba(232,112,112,.7)','rgba(109,232,160,.7)'],borderRadius:5,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#6b7280',callback:v=>f(v)+' €'},grid:{color:'#252935'}},x:{ticks:{color:'#6b7280'},grid:{display:false}}}}});
+  if(CH.pi)CH.pi.destroy();
+  CH.pi=new Chart(document.getElementById('ch-pi'),{type:'doughnut',data:{labels:['Ind. légales','Préavis','Congés Payés'],datasets:[{data:[d.il,d.pr,d.cp],backgroundColor:['rgba(232,112,112,.8)','rgba(109,157,232,.8)','rgba(232,201,109,.8)'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#6b7280',boxWidth:11,padding:9}}}}});
+}
+
+// ── INDEMNITÉS ────────────────────────────────────────────
+function rIn(){
+  const data=D.i;
+  document.getElementById('pg-in').innerHTML=`
+<div class="kg">${kH([
+  {l:'Ind. Légales retenues',v:fe(data.reduce((a,r)=>a+(r['COMPARAISON']==='LEGAL'?+r['INDEM LÉGALE']||0:0),0)),s:'Méthode légale',c:'var(--dan)',fs:'13px'},
+  {l:'Ind. Conv. retenues',v:fe(data.reduce((a,r)=>a+(r['COMPARAISON']==='CONV'?+r['INDEM CONV.']||0:0),0)),s:'Méthode conv.',c:'var(--ac2)',fs:'13px'},
+  {l:'Majoration PSE',v:'0%',s:'Non appliquée',c:'var(--mut)'},
+  {l:'Coût Total',v:fe(data.reduce((a,r)=>a+(+r['COÛT TOTAL']||0),0)),s:'Charges incluses',c:'var(--acc)',fs:'13px'},
+])}</div>
+<div class="pnl"><div class="ph"><span class="pt">Comparatif Légal vs Conventionnel</span><span class="tg tb">${data.length} salariés</span></div>
+  <div class="tw"><table><thead><tr><th>ID</th><th>Nom</th><th>Site</th><th>Fonction</th><th>Anc.</th><th>Sal. Réf.</th><th>Ind. Légale</th><th>Ind. Conv.</th><th>Retenu</th><th>Préavis</th><th>CP</th><th>Charges</th><th>Coût Total</th></tr></thead><tbody>
+    ${data.map(r=>{const ret=String(r['COMPARAISON']||'').trim();const cls=ret==='LEGAL'?'tb':ret==='CONV'?'ty':'';return`<tr><td>${r['ID']||''}</td><td><strong>${r['Nom']||''}</strong></td><td>${r['Site']||''}</td><td style="font-size:10px">${r['Fonction']||''}</td><td class="mn">${(+r['Anc.']||0).toFixed(1)}</td><td class="mn">${fe(r['Salaire Ref'])}</td><td class="mn" style="color:var(--dan)">${fe(r['INDEM LÉGALE'])}</td><td class="mn" style="color:var(--mut)">${fe(r['INDEM CONV.'])}</td><td>${cls?`<span class="tg ${cls}">${ret}</span>`:'—'}</td><td class="mn">${fe(r['Indem Préavis Brut'])}</td><td class="mn">${fe(r['Indem CP'])}</td><td class="mn">${fe(r['COÛT Charges Patronales'])}</td><td class="mn" style="color:var(--acc)"><strong>${fe(r['COÛT TOTAL'])}</strong></td></tr>`;}).join('')}
+  </tbody></table></div>
+</div>`;
+}
+
+// ── PERSONNEL ─────────────────────────────────────────────
+function rPe(f2){
+  CF=f2||CF;
+  const p=D.p;
+  const sites=[...new Set(p.map(r=>r['Site']).filter(Boolean))];
+  let filt=p;
+  if(CF==='OUI')filt=p.filter(r=>String(r['Fonction à supprimer']).trim()==='Oui');
+  else if(CF==='NON')filt=p.filter(r=>String(r['Fonction à supprimer']).trim()==='Non');
+  else if(CF!=='ALL')filt=p.filter(r=>r['Site']===CF);
+  const bts=[{k:'ALL',l:`Tous (${p.length})`},...sites.map(s=>({k:s,l:`${s} (${p.filter(r=>r['Site']===s).length})`})),{k:'OUI',l:`Supprimés (${p.filter(r=>String(r['Fonction à supprimer']).trim()==='Oui').length})`},{k:'NON',l:`Maintenus (${p.filter(r=>String(r['Fonction à supprimer']).trim()==='Non').length})`}];
+  document.getElementById('pg-pe').innerHTML=`
+<div class="fb">${bts.map(b=>`<button class="fbt${CF===b.k?' on':''}" onclick="rPe('${b.k}')">${b.l}</button>`).join('')}</div>
+<div class="pnl"><div class="ph"><span class="pt">Liste du Personnel — FATTON & CO</span><span class="tg tb">${filt.length} salarié${filt.length>1?'s':''}</span></div>
+  <div class="tw"><table><thead><tr><th>ID</th><th>Nom</th><th>Prénom</th><th>Site</th><th>Fonction</th><th>Catégorie</th><th>Contrat</th><th>Ancienneté</th><th>Âge</th><th>Salaire Brut</th><th>Statut</th></tr></thead><tbody>
+    ${filt.map(r=>{const s=String(r['Fonction à supprimer']).trim()==='Oui';return`<tr><td>${r['ID']||''}</td><td><strong>${r['Nom']||''}</strong></td><td>${r['Prénom']||''}</td><td>${r['Site']||''}</td><td style="font-size:10px">${r['Fonction']||''}</td><td>${r['Catégorie']||''}</td><td>${r['Type de contrat']||''}</td><td class="mn">${(+r['Ancienneté (ans) réelle']||0).toFixed(1)} ans</td><td class="mn">${(+r['Age']||0).toFixed(0)} ans</td><td class="mn">${fe(r['Salaire Brut Mensuel (Base brut CP)'])}</td><td><span class="tg ${s?'tr':'tg2'}">${s?'Supprimé':'Maintenu'}</span></td></tr>`;}).join('')}
+  </tbody></table></div>
+</div>`;
+}
+
+function st(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('pg-'+id).classList.add('active');
+  if(el)el.classList.add('active');
+}
+
+init();
+setInterval(init, 5*60*1000);
+</script>
+</body>
+</html>
