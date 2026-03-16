@@ -205,14 +205,24 @@ function parse(wb){
   D.p = ps(wb,'👥 Personnel',2).filter(r=>r['ID']&&r['ID']!=='ID');
   D.i = ps(wb,'💰 Calcul Indemnites',2).filter(r=>r['ID']&&r['ID']!=='ID'&&+r['COÛT TOTAL']>0);
   D.s = ps(wb,'📋 Synthèse PSE',3).filter(r=>r['Site']&&r['Site']!=='TOTAL'&&['PUSIGNAN','ROGNAC','VALENCE'].includes(String(r['Site']).trim()));
-  const ds=wb.Sheets['📈 Dashboard'];
-  if(ds){
-    const rows=XLSX.utils.sheet_to_json(ds,{header:1,defval:''});
-    const r=rows[3]||[];
-    D.d={ea:+r[0]||34,sup:+r[1]||21,tr:+r[3]||.618,ca:+r[5]||1575572.96,cb:+r[6]||578474.31,eco:+r[7]||997098.65,il:+r[9]||184045.56,pr:+r[10]||166183.11,cp:+r[11]||93803.18,tot:+r[12]||444031.84,roi:+r[13]||.445,hs:+r[18]||19,fs:+r[19]||2};
-  }else{
-    D.d={ea:34,sup:21,tr:.618,ca:1575572.96,cb:578474.31,eco:997098.65,il:184045.56,pr:166183.11,cp:93803.18,tot:444031.84,roi:.445,hs:19,fs:2};
-  }
+  // Calcul 100% dynamique depuis les données réelles — aucune valeur codée en dur
+  const p=D.p, i=D.i;
+  const ea=p.length;
+  const sup=p.filter(r=>String(r['Fonction à supprimer']).trim()==='Oui').length;
+  const tr=ea>0?sup/ea:0;
+  const hs=p.filter(r=>String(r['Fonction à supprimer']).trim()==='Oui'&&r['Sexe']==='H').length;
+  const fs=p.filter(r=>String(r['Fonction à supprimer']).trim()==='Oui'&&r['Sexe']==='F').length;
+  const salAll=p.reduce((a,r)=>a+(+r['Salaire Brut annuel']||+r['Salaire Brut Mensuel (Base brut CP)']*12||0),0);
+  const salApres=p.filter(r=>String(r['Fonction à supprimer']).trim()!=='Oui').reduce((a,r)=>a+(+r['Salaire Brut annuel']||+r['Salaire Brut Mensuel (Base brut CP)']*12||0),0);
+  const ca=salAll*1.45;
+  const cb=salApres*1.45;
+  const eco=ca-cb;
+  const il=i.reduce((a,r)=>a+(+r['INDEM RETENUE']||+r['INDEM LÉGALE']||0),0);
+  const pr=i.reduce((a,r)=>a+(+r['Indem Préavis Brut']||0),0);
+  const cp=i.reduce((a,r)=>a+(+r['Indem CP']||0),0);
+  const tot=i.reduce((a,r)=>a+(+r['COÛT TOTAL']||0),0);
+  const roi=eco>0?tot/eco:0;
+  D.d={ea,sup,tr,ca,cb,eco,il,pr,cp,tot,roi,hs,fs};
 }
 
 function ps(wb,n,sk){
